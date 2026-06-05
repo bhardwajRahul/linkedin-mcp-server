@@ -1,4 +1,4 @@
-# LinkedIn MCP Server
+# MCP Server for LinkedIn
 
 <p align="left">
   <a href="https://pypi.org/project/linkedin-scraper-mcp/" target="_blank"><img src="https://img.shields.io/pypi/v/linkedin-scraper-mcp?color=blue" alt="PyPI"></a>
@@ -7,7 +7,9 @@
   <a href="https://github.com/stickerdaniel/linkedin-mcp-server/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/badge/License-Apache%202.0-%233fb950?labelColor=32383f" alt="License"></a>
 </p>
 
-Through this LinkedIn MCP server, AI assistants like Claude can connect to your LinkedIn. Access profiles and companies, search for jobs, or get job details.
+> **Disclaimer:** This is an independent, community project. It is not affiliated with, authorized by, endorsed by, or sponsored by LinkedIn Corporation or Microsoft. "LinkedIn" is a registered trademark of LinkedIn Corporation and is used here only descriptively to identify the third-party service this software interoperates with.
+
+An MCP server that lets AI assistants like Claude read LinkedIn data through your own logged-in browser session. Access profiles and companies, search for jobs, or get job details.
 
 
 ## Installation Methods
