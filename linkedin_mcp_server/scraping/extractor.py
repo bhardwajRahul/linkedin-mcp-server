@@ -185,6 +185,7 @@ function findActionRoot(main) {
 _FIND_INCOMING_ACTION_ROW_FN_JS = r"""
 function findIncomingActionRow(main) {
   const scope = main.querySelector('section') || main.firstElementChild || main;
+  const matches = [];
   for (const expander of scope.querySelectorAll('button[aria-expanded]')) {
     let el = expander.parentElement;
     while (el && el !== scope && el !== main) {
@@ -203,14 +204,17 @@ function findIncomingActionRow(main) {
           !el.querySelector('a[href*="/preload/custom-invite/"]') &&
           !el.querySelector('a[aria-label]')
         ) {
-          return el;
+          matches.push(el);
         }
         break;
       }
       el = el.parentElement;
     }
   }
-  return null;
+  // Require a unique match: a profile's top card has exactly one action
+  // row. Ambiguity (two rows matching the shape) is treated as no match so
+  // the irreversible Accept click never fires on a guessed control.
+  return matches.length === 1 ? matches[0] : null;
 }
 """
 
@@ -2021,7 +2025,7 @@ class LinkedInExtractor:
             )
 
         signals = await self._read_action_signals(username)
-        state = detect_connection_state(page_text, signals)
+        state = detect_connection_state(signals)
         logger.info(
             "Connection signals for %s: state=%s signals=%s", username, state, signals
         )
@@ -2076,9 +2080,7 @@ class LinkedInExtractor:
                 verified = await self.scrape_person(username, {"main_profile"})
                 verified_text = verified.get("sections", {}).get("main_profile", "")
                 verified_signals = await self._read_action_signals(username)
-                verified_state = detect_connection_state(
-                    verified_text, verified_signals
-                )
+                verified_state = detect_connection_state(verified_signals)
                 if verified_state == "already_connected":
                     break
             if verified_state != "already_connected":
@@ -2172,7 +2174,7 @@ class LinkedInExtractor:
         verified = await self.scrape_person(username, {"main_profile"})
         verified_text = verified.get("sections", {}).get("main_profile", "")
         verified_signals = await self._read_action_signals(username)
-        verified_state = detect_connection_state(verified_text, verified_signals)
+        verified_state = detect_connection_state(verified_signals)
 
         if verified_signals.has_invite_anchor:
             return _connection_result(

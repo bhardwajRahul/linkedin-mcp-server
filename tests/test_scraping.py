@@ -845,13 +845,9 @@ class TestScrapePersonUrls:
 class TestDetectConnectionState:
     """Tests for locale-independent connection-state detection.
 
-    All states except incoming_request are decided purely from the
-    structural ActionSignals; profile_text is passed empty for those.
-    Incoming-request is the one AGENTS.md-sanctioned text fallback,
-    so its test passes both signals (all False) and a profile_text
-    containing Accept/Ignore labels. The two priority-ordering tests
-    intentionally pass non-empty text to verify that URL/attribute
-    signals win over text fallbacks regardless of what's in the text.
+    Every state is decided purely from the structural ActionSignals; no
+    profile text is read for any state, including incoming_request (whose
+    Accept/Ignore action row is fingerprinted by ``has_incoming_action_row``).
     """
 
     @staticmethod
@@ -873,17 +869,17 @@ class TestDetectConnectionState:
         )
 
     def test_self_profile(self):
-        assert detect_connection_state("", self._signals(edit=True)) == "self_profile"
+        assert detect_connection_state(self._signals(edit=True)) == "self_profile"
 
     def test_connectable(self):
-        assert detect_connection_state("", self._signals(invite=True)) == "connectable"
+        assert detect_connection_state(self._signals(invite=True)) == "connectable"
 
     def test_already_connected(self):
         # 1st-degree: Message anchor in action root, but no Follow/Connect/Pending
         # button (no aria-label on any action-root button).
         assert (
             detect_connection_state(
-                "", self._signals(compose_in_root=True, labeled_action=False)
+                self._signals(compose_in_root=True, labeled_action=False)
             )
             == "already_connected"
         )
@@ -894,7 +890,7 @@ class TestDetectConnectionState:
         # anchor.
         assert (
             detect_connection_state(
-                "", self._signals(compose_in_root=True, labeled_action=True)
+                self._signals(compose_in_root=True, labeled_action=True)
             )
             == "follow_only"
         )
@@ -904,8 +900,7 @@ class TestDetectConnectionState:
         # the action root — distinct from Follow's <button aria-label=...>.
         assert (
             detect_connection_state(
-                "",
-                self._signals(compose_in_root=True, labeled_anchor=True),
+                self._signals(compose_in_root=True, labeled_anchor=True)
             )
             == "pending"
         )
@@ -916,17 +911,14 @@ class TestDetectConnectionState:
         # fallthrough that would otherwise apply.
         assert (
             detect_connection_state(
-                "",
-                self._signals(compose_in_root=True, labeled_anchor=True),
+                self._signals(compose_in_root=True, labeled_anchor=True)
             )
             == "pending"
         )
 
     def test_incoming_request_via_structural_row(self):
-        # The structural fingerprint alone decides — empty text proves no
-        # label values are consulted (locale-independent).
         assert (
-            detect_connection_state("", self._signals(incoming_row=True))
+            detect_connection_state(self._signals(incoming_row=True))
             == "incoming_request"
         )
 
@@ -936,77 +928,37 @@ class TestDetectConnectionState:
         # produces garbage signals (compose, labeled button, labeled
         # anchor all True). The structural incoming signal must win over
         # the pending check those garbage signals would trigger.
-        text = "Eric Langlouis\n\n· 2.\n\nAachen\n\nAnnehmen\nIgnorieren\nMehr"
         assert (
             detect_connection_state(
-                text,
                 self._signals(
                     incoming_row=True,
                     compose_in_root=True,
                     labeled_action=True,
                     labeled_anchor=True,
-                ),
+                )
             )
             == "incoming_request"
         )
 
     def test_connectable_takes_priority_over_incoming_row(self):
         assert (
-            detect_connection_state("", self._signals(invite=True, incoming_row=True))
+            detect_connection_state(self._signals(invite=True, incoming_row=True))
             == "connectable"
         )
 
     def test_self_profile_takes_priority_over_incoming_row(self):
         assert (
-            detect_connection_state("", self._signals(edit=True, incoming_row=True))
+            detect_connection_state(self._signals(edit=True, incoming_row=True))
             == "self_profile"
         )
 
-    def test_incoming_request_via_text_fallback_en(self):
-        # Locale-table fallback per AGENTS.md — Accept+Ignore (en) appear
-        # within the top-card prefix.
-        text = "Aklasur Rahman\n\n--\n\nDhaka\n\nAccept\nIgnore\nMore"
-        assert detect_connection_state(text, self._signals()) == "incoming_request"
+    def test_unavailable_when_no_signals(self):
+        assert detect_connection_state(self._signals()) == "unavailable"
 
-    def test_incoming_request_via_text_fallback_de(self):
-        # German labels from the locale table; signals all False simulates
-        # a DOM variant the structural fingerprint does not match.
-        text = "BOMMINA SRIRAM\n\n· 2.\n\nHyderabad\n\nAnnehmen\nIgnorieren\nMehr"
-        assert detect_connection_state(text, self._signals()) == "incoming_request"
-
-    def test_incoming_request_text_outside_top_card_ignored(self):
-        # Accept/Ignore far past the 600-char top-card budget must not match.
-        prefix = "X" * 700
-        text = prefix + "\nAccept\nIgnore\n"
-        assert detect_connection_state(text, self._signals()) == "unavailable"
-
-    def test_incoming_request_takes_priority_over_already_connected(self):
-        # If the profile somehow has both compose anchor and Accept/Ignore
-        # labels (edge case), incoming_request wins per resolution order.
-        text = "Aklasur\n\nAccept\nIgnore\nMore"
-        assert (
-            detect_connection_state(text, self._signals(compose_in_root=True))
-            == "incoming_request"
-        )
-
-    def test_connectable_takes_priority_over_text_signals(self):
-        # vanityName invite anchor wins even if the page also has
-        # text that would otherwise match a fallback.
-        text = "Jane\n\nAccept\nIgnore\n"
-        assert (
-            detect_connection_state(text, self._signals(invite=True)) == "connectable"
-        )
-
-    def test_unavailable_when_no_signals_or_text(self):
-        assert detect_connection_state("", self._signals()) == "unavailable"
-
-    def test_unavailable_when_compose_missing_and_no_text(self):
+    def test_unavailable_when_compose_missing(self):
         # Restricted profile: no compose anchor, no labels, no invite.
         assert (
-            detect_connection_state(
-                "Some name\n\nFollow\n", self._signals(labeled_action=True)
-            )
-            == "unavailable"
+            detect_connection_state(self._signals(labeled_action=True)) == "unavailable"
         )
 
 
