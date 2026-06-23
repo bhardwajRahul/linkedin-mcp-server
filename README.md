@@ -111,6 +111,7 @@ The `@latest` tag ensures you always run the newest version — `uvx` checks PyP
 - `--login-timeout SECONDS` - Manual login wait timeout in seconds (default: 1800; 0 = no limit). How long the `--login` browser waits for you to finish signing in.
 - `--login-inline-wait SECONDS` - Bounded inline wait for a tool call to resume after login completes, in seconds (default: 25, max 45; 0 = return immediately).
 - `--auto-import` / `--no-auto-import` - Enable or disable auto-import of a session from a locally logged-in browser on the first no-session tool call (before falling back to manual login). Auto-import is on by default across interactive and non-interactive desktop runs; pass `--no-auto-import` (or `AUTO_IMPORT_FROM_BROWSER=false`) to require `--login` / `--import-from-browser` instead. No effect under Docker or on a non-loopback HTTP bind. On macOS the keychain may prompt once for Safe Storage access.
+- `--eager-full-chromium` - Download full Chrome for Testing in the background right after the headless shell, instead of lazily on the first headed login (`EAGER_FULL_CHROMIUM=true`). Headless setup is usable as soon as the shell is installed; this only pre-warms the headed login fallback.
 - `--user-data-dir PATH` - Path to persistent browser profile directory (default: ~/.linkedin-mcp/profile)
 - `--chrome-path PATH` - Path to Chrome/Chromium executable (for custom browser installations)
 
